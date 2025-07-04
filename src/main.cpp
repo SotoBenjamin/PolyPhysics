@@ -75,7 +75,6 @@ private:
         }
         m_bodies.clear();
 
-        // Eliminar los cuerpos de las paredes también
         m_physics.DestroyBody(m_groundBody);
         m_physics.DestroyBody(m_leftWallBody);
         m_physics.DestroyBody(m_rightWallBody);
@@ -84,20 +83,15 @@ private:
         m_birdBody = nullptr;
         m_targetBody = nullptr;
         
-        // Reiniciar estado
         m_isDragging = false;
         m_isBirdLaunched = false;
         m_gameState = PLAYING;
 
-        // Volver a crear la escena
         createScene();
     }
 
     void createScene() {
-        // --- Crear el Suelo y las Paredes (CORREGIDO) ---
-        // Cada pared/suelo es ahora su propio cuerpo estático para mayor estabilidad.
         
-        // Suelo
         b2BodyDef groundBodyDef;
         groundBodyDef.position.Set(SCREEN_WIDTH / 2.f / SCALE, SCREEN_HEIGHT / SCALE - (10.f / SCALE));
         m_groundBody = m_physics.CreateBody(&groundBodyDef);
@@ -105,7 +99,6 @@ private:
         groundBox.SetAsBox(SCREEN_WIDTH / 2.f / SCALE, 10.f / SCALE);
         m_groundBody->CreateFixture(&groundBox, 0.0f);
 
-        // Pared izquierda
         b2BodyDef leftWallDef;
         leftWallDef.position.Set(10.f / SCALE, SCREEN_HEIGHT / 2.f / SCALE);
         m_leftWallBody = m_physics.CreateBody(&leftWallDef);
@@ -113,7 +106,6 @@ private:
         leftWallBox.SetAsBox(10.f / SCALE, SCREEN_HEIGHT / 2.f / SCALE);
         m_leftWallBody->CreateFixture(&leftWallBox, 0.0f);
 
-        // Pared derecha
         b2BodyDef rightWallDef;
         rightWallDef.position.Set(SCREEN_WIDTH / SCALE - (10.f / SCALE), SCREEN_HEIGHT / 2.f / SCALE);
         m_rightWallBody = m_physics.CreateBody(&rightWallDef);
@@ -121,7 +113,6 @@ private:
         rightWallBox.SetAsBox(10.f / SCALE, SCREEN_HEIGHT / 2.f / SCALE);
         m_rightWallBody->CreateFixture(&rightWallBox, 0.0f);
 
-        // Techo
         b2BodyDef ceilingDef;
         ceilingDef.position.Set(SCREEN_WIDTH / 2.f / SCALE, 10.f / SCALE);
         m_ceilingBody = m_physics.CreateBody(&ceilingDef);
@@ -130,19 +121,15 @@ private:
         m_ceilingBody->CreateFixture(&ceilingBox, 0.0f);
 
 
-        // --- Crear Estructura de Obstáculos ---
-        // Base
+      
         for (int i = 0; i < 3; ++i) {
             createBox(950.f + i * 55.f, SCREEN_HEIGHT - 35.f, 25.f, 25.f);
         }
-        // Segundo nivel
         for (int i = 0; i < 2; ++i) {
             createBox(977.f + i * 55.f, SCREEN_HEIGHT - 85.f, 25.f, 25.f);
         }
-        // Techo de la estructura
         createBox(1005.f, SCREEN_HEIGHT - 135.f, 80.f, 10.f);
 
-        // --- Crear el Objetivo ---
         b2BodyDef targetDef;
         targetDef.type = b2_dynamicBody;
         targetDef.position.Set(1005.f / SCALE, (SCREEN_HEIGHT - 105.f) / SCALE);
@@ -150,15 +137,13 @@ private:
         
         b2CircleShape targetShape;
         targetShape.m_radius = 15.f / SCALE;
-        m_physics.CreateCircleFixture(m_targetBody, &targetShape, 0.5f); // Más ligero que las cajas
+        m_physics.CreateCircleFixture(m_targetBody, &targetShape, 0.5f); 
         m_bodies.push_back(m_targetBody);
 
-        // Poner a dormir al objetivo
         m_targetBody->SetSleepingAllowed(true);
         m_targetBody->SetAwake(false);
 
 
-        // --- Crear el Pájaro ---
         b2BodyDef birdBodyDef;
         birdBodyDef.type = b2_dynamicBody;
         birdBodyDef.position.Set(150.f / SCALE, (SCREEN_HEIGHT - 100.f) / SCALE);
@@ -166,7 +151,7 @@ private:
 
         b2CircleShape circleShape;
         circleShape.m_radius = 20.f / SCALE;
-        m_physics.CreateCircleFixture(m_birdBody, &circleShape, 2.0f); // Pesado
+        m_physics.CreateCircleFixture(m_birdBody, &circleShape, 2.0f); 
         m_bodies.push_back(m_birdBody);
         
         m_birdBody->SetSleepingAllowed(true);
@@ -183,7 +168,6 @@ private:
         m_physics.CreateBoxFixture(boxBody, halfWidth / SCALE, halfHeight / SCALE, 1.0f);
         m_bodies.push_back(boxBody);
         
-        // Poner a dormir las cajas de la estructura
         boxBody->SetSleepingAllowed(true);
         boxBody->SetAwake(false);
         
@@ -200,7 +184,6 @@ private:
                 reset();
             }
 
-            // --- Launch Mechanic (only if playing) ---
             if (m_gameState == PLAYING) {
                 if (event.type == sf::Event::MouseButtonPressed) {
                     if (event.mouseButton.button == sf::Mouse::Left) {
@@ -218,12 +201,12 @@ private:
                     if (event.mouseButton.button == sf::Mouse::Left && m_isDragging) {
                         m_isDragging = false;
                         m_isBirdLaunched = true;
-                        m_birdBody->SetAwake(true); // Despertar el pájaro al lanzarlo
+                        m_birdBody->SetAwake(true); 
 
                         sf::Vector2f dragEndPos = m_window.mapPixelToCoords({event.mouseButton.x, event.mouseButton.y});
                         sf::Vector2f launchVector = m_dragStartPos - dragEndPos;
 
-                        float launchPower = 0.5f; // Aumentado para más potencia
+                        float launchPower = 0.5f; 
                         m_birdBody->SetLinearVelocity(b2Vec2(launchVector.x * launchPower, launchVector.y * launchPower));
                     }
                 }
@@ -235,7 +218,6 @@ private:
         if (m_gameState == PLAYING) {
             m_physics.Update(dt);
 
-            // Condición de victoria: si el objetivo cae al suelo
             if (m_targetBody && m_targetBody->GetPosition().y > (SCREEN_HEIGHT - 40.f) / SCALE) {
                 m_gameState = WON;
                 m_messageText.setString("¡Ganaste!\nPresiona R para reiniciar");
@@ -249,7 +231,6 @@ private:
     void render() {
         m_window.clear(sf::Color(135, 206, 235)); // Sky blue
 
-        // Render all physics bodies
         for (const auto& body : m_bodies) {
             b2Fixture* fixture = body->GetFixtureList();
             while (fixture) {
@@ -290,13 +271,11 @@ private:
             }
         }
         
-        // Dibujar el suelo (es visual, el cuerpo físico es invisible)
         sf::RectangleShape ground(sf::Vector2f(SCREEN_WIDTH, 20.f));
         ground.setPosition(0, SCREEN_HEIGHT - 20.f);
         ground.setFillColor(sf::Color(34, 139, 34)); // Verde oscuro
         m_window.draw(ground);
         
-        // Dibujar línea de lanzamiento
         if (m_isDragging) {
             sf::Vertex line[] = {
                 sf::Vertex(m_dragStartPos, sf::Color::Black),
@@ -305,7 +284,6 @@ private:
             m_window.draw(line, 2, sf::Lines);
         }
 
-        // Dibujar mensaje de victoria
         if (m_gameState == WON) {
             m_window.draw(m_messageText);
         }
@@ -316,7 +294,6 @@ private:
     sf::RenderWindow m_window;
     PhysicsWrapper m_physics;
     
-    // Punteros a los cuerpos
     std::vector<b2Body*> m_bodies;
     b2Body* m_birdBody = nullptr;
     b2Body* m_targetBody = nullptr;

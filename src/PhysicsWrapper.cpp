@@ -1,7 +1,3 @@
-//
-// Created by Benjamin Soto on 3/07/25.
-//
-
 #include "PhysicsWrapper.h"
 #include "Collision.h"
 #include <iostream>
@@ -20,14 +16,11 @@ PhysicsWrapper::PhysicsWrapper(const b2Vec2& gravity)
 }
 
 PhysicsWrapper::~PhysicsWrapper() {
-    // El unique_ptr se encarga de la limpieza
 }
 
 void PhysicsWrapper::Update(float deltaTime) {
-    // Limpiar cache de contactos del frame anterior
     m_contactCache.clear();
 
-    // Step de la simulación
     m_world->Step(deltaTime, m_velocityIterations, m_positionIterations);
 
     // Opcional: limpiar cuerpos marcados para destrucción
@@ -68,7 +61,6 @@ void PhysicsWrapper::EndContact(b2Contact* contact) {
 }
 
 void PhysicsWrapper::PreSolve(b2Contact* contact, const b2Manifold* oldManifold) {
-    // Si la detección personalizada está deshabilitada, usar Box2D normal
     if (!m_useCustomDetection) {
         return;
     }
@@ -76,41 +68,33 @@ void PhysicsWrapper::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
     b2Fixture* fixtureA = contact->GetFixtureA();
     b2Fixture* fixtureB = contact->GetFixtureB();
 
-    // Obtener transformaciones de los cuerpos
     b2Body* bodyA = fixtureA->GetBody();
     b2Body* bodyB = fixtureB->GetBody();
     const b2Transform& xfA = bodyA->GetTransform();
     const b2Transform& xfB = bodyB->GetTransform();
 
-    // Verificar en cache primero (optimización)
     ContactInfo result;
     auto cacheIt = m_contactCache.find(contact);
     if (cacheIt != m_contactCache.end()) {
         result = cacheIt->second;
     } else {
-        // Realizar detección personalizada
         result = PerformCustomCollisionCheck(fixtureA, fixtureB, xfA, xfB);
         m_contactCache[contact] = result;
     }
 
-    // Si no hay colisión según nuestro sistema, deshabilitar el contacto
     if (!result.hasCollision) {
         contact->SetEnabled(false);
         std::cout << "[PreSolve] Contacto deshabilitado por detección personalizada" << std::endl;
         return;
     }
 
-    // Log información de la colisión
     std::cout << "[PreSolve] Colisión confirmada - Profundidad: " << result.depth
               << " Normal: (" << result.normal.x << ", " << result.normal.y << ")"
               << std::endl;
 
-    // Opcionalmente, modificar propiedades del contacto basándose en el resultado
-    // Por ejemplo, ajustar fricción o restitución dinámicamente
     b2WorldManifold worldManifold;
     contact->GetWorldManifold(&worldManifold);
 
-    // Llamar callback de pre-solve si está configurado
     if (m_preSolveCallback) {
         bool shouldContinue = m_preSolveCallback(fixtureA, fixtureB, result);
         if (!shouldContinue) {
@@ -149,12 +133,10 @@ ContactInfo PhysicsWrapper::PerformCustomCollisionCheck(b2Fixture* fixtureA, b2F
     b2Shape::Type typeA = fixtureA->GetType();
     b2Shape::Type typeB = fixtureB->GetType();
 
-    // Círculo vs Círculo
     if (typeA == b2Shape::e_circle && typeB == b2Shape::e_circle) {
         const b2CircleShape* circleA = static_cast<const b2CircleShape*>(fixtureA->GetShape());
         const b2CircleShape* circleB = static_cast<const b2CircleShape*>(fixtureB->GetShape());
 
-        // Transformar los centros de los círculos al espacio mundial
         Circle cA = {
             b2Mul(xfA, circleA->m_p),
             circleA->m_radius
@@ -173,14 +155,12 @@ ContactInfo PhysicsWrapper::PerformCustomCollisionCheck(b2Fixture* fixtureA, b2F
 
         Polygon pA, pB;
 
-        // Transformar vértices del polígono A al espacio mundial
         pA.vertices.reserve(polyA->m_count);
         for (int i = 0; i < polyA->m_count; ++i) {
             pA.vertices.push_back(b2Mul(xfA, polyA->m_vertices[i]));
         }
         pA.ComputeNormals();
 
-        // Transformar vértices del polígono B al espacio mundial
         pB.vertices.reserve(polyB->m_count);
         for (int i = 0; i < polyB->m_count; ++i) {
             pB.vertices.push_back(b2Mul(xfB, polyB->m_vertices[i]));
@@ -189,7 +169,6 @@ ContactInfo PhysicsWrapper::PerformCustomCollisionCheck(b2Fixture* fixtureA, b2F
 
         result = Collision::CheckPolygonToPolygon(pA, pB);
     }
-    // Círculo vs Polígono
     else if (typeA == b2Shape::e_circle && typeB == b2Shape::e_polygon) {
         const b2CircleShape* circle = static_cast<const b2CircleShape*>(fixtureA->GetShape());
         const b2PolygonShape* poly = static_cast<const b2PolygonShape*>(fixtureB->GetShape());
@@ -208,7 +187,6 @@ ContactInfo PhysicsWrapper::PerformCustomCollisionCheck(b2Fixture* fixtureA, b2F
 
         result = Collision::CheckCircleToPolygon(c, p);
     }
-    // Polígono vs Círculo
     else if (typeA == b2Shape::e_polygon && typeB == b2Shape::e_circle) {
         const b2PolygonShape* poly = static_cast<const b2PolygonShape*>(fixtureA->GetShape());
         const b2CircleShape* circle = static_cast<const b2CircleShape*>(fixtureB->GetShape());
@@ -227,12 +205,12 @@ ContactInfo PhysicsWrapper::PerformCustomCollisionCheck(b2Fixture* fixtureA, b2F
 
         result = Collision::CheckCircleToPolygon(c, p);
 
-        // Invertir la normal ya que el orden está cambiado
         if (result.hasCollision) {
             result.normal = -result.normal;
         }
     }
     else {
+        std::cout<<"BOX2D"<<std::endl;
         // Para otros tipos de formas (edge, chain), usar detección de Box2D
         result.hasCollision = true;
     }

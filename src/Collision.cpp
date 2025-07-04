@@ -1,8 +1,6 @@
-//
-// Created by Benjamin Soto on 3/07/25.
-//
 #include "Collision.h"
 #include <cmath>
+#include <iostream>
 
 namespace Collision {
 
@@ -19,10 +17,8 @@ namespace Collision {
             if (dist > 0.0f) {
                 result.normal = (1.0f / dist) * toVector;
                 result.depth = radiiSum - dist;
-                // Punto de contacto en el borde del círculo A hacia B
                 result.contactPoint = a.center + a.radius * result.normal;
             } else {
-                // Círculos en la misma posición
                 result.normal.Set(1.0f, 0.0f);
                 result.depth = radiiSum;
                 result.contactPoint = a.center;
@@ -52,15 +48,13 @@ namespace Collision {
         ContactInfo result;
         result.depth = std::numeric_limits<float>::max();
 
-        // Verificar ejes de A
         for (const auto& axis : a.normals) {
             float minA, maxA, minB, maxB;
             ProjectVertices(a.vertices, axis, minA, maxA);
             ProjectVertices(b.vertices, axis, minB, maxB);
 
             if (maxA < minB || maxB < minA) {
-                // Encontró un eje de separación
-                return result; // hasCollision = false por defecto
+                return result; 
             }
 
             float overlap = std::min(maxA, maxB) - std::max(minA, minB);
@@ -70,7 +64,6 @@ namespace Collision {
             }
         }
 
-        // Verificar ejes de B
         for (const auto& axis : b.normals) {
             float minA, maxA, minB, maxB;
             ProjectVertices(a.vertices, axis, minA, maxA);
@@ -87,7 +80,6 @@ namespace Collision {
             }
         }
 
-        // Calcular dirección correcta de la normal
         b2Vec2 centerA = a.GetCenter();
         b2Vec2 centerB = b.GetCenter();
         b2Vec2 dir = centerB - centerA;
@@ -97,6 +89,7 @@ namespace Collision {
         }
 
         result.hasCollision = true;
+        std::cout<<"Collision with my own logic"<<std::endl;
         return result;
     }
 
@@ -118,17 +111,15 @@ namespace Collision {
     ContactInfo CheckCircleToPolygon(const Circle& circle, const Polygon& polygon) {
         ContactInfo result;
 
-        // Verificar primero con SAT
         result.depth = std::numeric_limits<float>::max();
 
-        // Verificar ejes del polígono
         for (const auto& axis : polygon.normals) {
             float minPoly, maxPoly, minCircle, maxCircle;
             ProjectVertices(polygon.vertices, axis, minPoly, maxPoly);
             ProjectCircle(circle, axis, minCircle, maxCircle);
 
             if (maxPoly < minCircle || maxCircle < minPoly) {
-                return result; // No hay colisión
+                return result; 
             }
 
             float overlap = std::min(maxPoly, maxCircle) - std::max(minPoly, minCircle);
@@ -138,7 +129,6 @@ namespace Collision {
             }
         }
 
-        // Encontrar el punto más cercano en el polígono
         float minDistSq = std::numeric_limits<float>::max();
         b2Vec2 closestPoint;
 
@@ -155,7 +145,6 @@ namespace Collision {
             }
         }
 
-        // Verificar el eje desde el centro del círculo al punto más cercano
         b2Vec2 axis = circle.center - closestPoint;
         float distSq = axis.LengthSquared();
 
@@ -168,7 +157,7 @@ namespace Collision {
             ProjectCircle(circle, axis, minCircle, maxCircle);
 
             if (maxPoly < minCircle || maxCircle < minPoly) {
-                return result; // No hay colisión
+                return result; 
             }
 
             float overlap = std::min(maxPoly, maxCircle) - std::max(minPoly, minCircle);
@@ -178,7 +167,6 @@ namespace Collision {
             }
         }
 
-        // Ajustar dirección de la normal
         b2Vec2 polyCenter = polygon.GetCenter();
         if (b2Dot(circle.center - polyCenter, result.normal) < 0.0f) {
             result.normal = -result.normal;
