@@ -1,4 +1,3 @@
-
 #ifndef PHYSICSWRAPPER_H
 #define PHYSICSWRAPPER_H
 
@@ -76,7 +75,7 @@ public:
 
     bool ReportFixture(b2Fixture* fixture) override {
         fixtures->push_back(fixture);
-        return true; // Continuar la query
+        return true; 
     }
 };
 
